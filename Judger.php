@@ -22,6 +22,12 @@ class Judger extends Curl
         '编译错误'=>"Compile Error",
     ];
 
+
+    public function __construct()
+    {
+        $this->submissionModel=new SubmissionModel();
+    }
+
     public function judge($row)
     {
         try {
@@ -58,8 +64,7 @@ class Judger extends Curl
             // $ret[$row['sid']]=[
             //     "verdict"=>$sub['verdict']
             // ];
-            $submissionModel = new SubmissionModel();
-            $submissionModel->updateSubmission($row['sid'], $sub);
+            $this->submissionModel->updateSubmission($row['sid'], $sub);
         } catch (Exception $e) {
         }
     }
