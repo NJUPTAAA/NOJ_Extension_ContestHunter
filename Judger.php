@@ -35,10 +35,10 @@ class Judger extends Curl
             $res=Requests::get('http://contest-hunter.org:83/record/'.$row['remote_id']);
             preg_match('/<dt>状态<\/dt>[\s\S]*?<dd class=".*?">(.*?)<\/dd>/m', $res->body, $match);
             $status=$match[1];
-            if (!array_key_exists($status, $contesthunter_v)) {
+            if (!array_key_exists($status, $verdict)) {
                 return;
             }
-            $sub['verdict']=$contesthunter_v[$status];
+            $sub['verdict']=$verdict[$status];
             $sub["score"]=$sub['verdict']=="Accepted" ? 1 : 0;
             $sub['remote_id']=$row['remote_id'];
             if ($sub['verdict']!="Submission Error" && $sub['verdict']!="Compile Error") {
