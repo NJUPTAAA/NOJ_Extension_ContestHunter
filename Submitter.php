@@ -1,5 +1,5 @@
 <?php
-namespace App\Babel\Extension\template;
+namespace App\Babel\Extension\contesthunter;
 
 use App\Babel\Submit\Curl;
 use App\Models\CompilerModel;
@@ -11,6 +11,7 @@ class Submitter extends Curl
 {
     protected $sub;
     public $post_data=[];
+    protected $oid;
     protected $selectedJudger;
 
     public function __construct(& $sub, $all_data)
@@ -18,63 +19,48 @@ class Submitter extends Curl
         $this->sub=& $sub;
         $this->post_data=$all_data;
         $judger=new JudgerModel();
-        $judger_list=$judger->list(4);
+        $this->oid=OJModel::oid('hdu');
+        if(is_null($this->oid)) {
+            throw new Exception("Online Judge Not Found");
+        }
+        $judger_list=$judger->list($this->oid);
         $this->selectedJudger=$judger_list[array_rand($judger_list)];
     }
 
     private function _login()
     {
-        $response=$this->grab_page([
-            "site"=>'http://poj.org',
-            "oj"=>'poj',
-            "handle"=>$this->selectedJudger["handle"]
-        ]);
-        if (strpos($response, 'Log Out')===false) {
+        $response=$this->grab_page('http://contest-hunter.org:83', 'contesthunter', [], $this->selectedJudger["handle"]);
+        if (strpos($response, '登录')!==false) {
+            preg_match('/<input name="CSRFToken" type="hidden" value="([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"\/>/', $response, $match);
+            $token=$match[1];
+
             $params=[
-                'user_id1' => $this->selectedJudger["handle"],
-                'password1' => $this->selectedJudger["password"],
-                'B1' => 'login',
+                'CSRFToken' => $token,
+                'username' => $this->selectedJudger["handle"],
+                'password' => $this->selectedJudger["password"],
+                'keepOnline' => 'on',
             ];
-            $this->login([
-                "url"=>'http://poj.org/login',
-                "data"=>http_build_query($params),
-                "oj"=>'poj',
-                "ret"=>true,
-                "handle"=>$this->selectedJudger["handle"]
-            ]);
+            $this->login('http://contest-hunter.org:83/login', http_build_query($params), 'contesthunter', false, $this->selectedJudger["handle"]);
         }
     }
 
     private function _submit()
     {
+        $response=$this->grab_page("http://contest-hunter.org:83/contest/{$this->post_data['cid']}/{$this->post_data['iid']}", "contesthunter", [], $this->selectedJudger["handle"]);
+
+        preg_match('/<input name="CSRFToken" type="hidden" value="([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"\/>/', $response, $match);
+        $token=$match[1];
+
         $params=[
-            'problem_id' => $this->post_data['iid'],
-            'language' => $this->post_data['lang'],
-            'source' => base64_encode($this->post_data["solution"]),
-            'encoded' => 1, // Optional, but sometimes base64 seems smaller than url encode
+            'CSRFToken' => $token,
+            'language' => $this->post_data["lang"],
+            'code' => base64_encode(mb_convert_encoding($this->post_data["solution"], 'utf-16', 'utf-8')),
         ];
-
-        $response=$this->post_data([
-            "site"=>"http://poj.org/submit",
-            "data"=>http_build_query($params),
-            "oj"=>"poj",
-            "ret"=>true,
-            "follow"=>false,
-            "returnHeader"=>true,
-            "postJson"=>false,
-            "extraHeaders"=>[],
-            "handle"=>$this->selectedJudger["handle"]
-        ]);
-
-        if (!preg_match('/Location: .*\/status/', $response, $match)) {
-            $this->sub['verdict']='Submission Error';
+        $response=$this->post_data("http://contest-hunter.org:83/contest/{$this->post_data['cid']}/{$this->post_data['iid']}?submit", http_build_query($params), "contesthunter", true, false, true, false, [], $this->selectedJudger["handle"]);
+        if (preg_match('/\nLocation: \/record\/(\d+)/i', $response, $match)) {
+            $this->sub['remote_id']=$match[1];
         } else {
-            $res=Requests::get('http://poj.org/status?problem_id='.$this->post_data['iid'].'&user_id='.urlencode($this->selectedJudger["handle"]));
-            if (!preg_match('/<tr align=center><td>(\d+)<\/td>/', $res->body, $match)) {
-                $this->sub['verdict']='Submission Error';
-            } else {
-                $this->sub['remote_id']=$match[1];
-            }
+            $this->sub['verdict']='Submission Error';
         }
     }
 
@@ -82,8 +68,9 @@ class Submitter extends Curl
     {
         $validator=Validator::make($this->post_data, [
             'pid' => 'required|integer',
+            'cid' => 'required',
             'coid' => 'required|integer',
-            'iid' => 'required|integer',
+            'iid' => 'required',
             'solution' => 'required',
         ]);
 

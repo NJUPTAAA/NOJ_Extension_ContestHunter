@@ -1,38 +1,38 @@
 {
     "modifications":[{
-        "code":"c",
-        "compability":"c",
-        "language":"c",
-        "icon":"devicon-c-plain",
-        "display":"C",
-        "method":"add"
-    },{
-        "code":"cpp",
+        "code":"CPP",
         "compability":"c",
         "language":"cpp",
-        "icon":"devicon-cplusplus-plain",
+        "icon":"devicon-c-plain",
         "display":"C++",
         "method":"add"
     },{
-        "code":"java",
-        "compability":"java",
-        "language":"java",
-        "icon":"devicon-java-plain",
-        "display":"Java",
+        "code":"C",
+        "compability":"c",
+        "language":"c",
+        "icon":"devicon-cplusplus-plain",
+        "display":"C",
         "method":"add"
     },{
-        "code":"py2",
+        "code":"Pascal",
+        "compability":"pascal",
+        "language":"pascal",
+        "icon":"devicon-devicon-plain",
+        "display":"Pascal",
+        "method":"add"
+    },{
+        "code":"Python2",
         "compability":"python",
         "language":"python",
         "icon":"devicon-python-plain",
-        "display":"Python 2.7",
+        "display":"Python2",
         "method":"add"
     },{
-        "code":"py3",
+        "code":"Python3",
         "compability":"python",
         "language":"python",
         "icon":"devicon-python-plain",
-        "display":"Python 3.5",
+        "display":"Python3",
         "method":"add"
     }]
 }
