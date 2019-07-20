@@ -33,7 +33,7 @@ class Crawler extends CrawlerBase
         if ($action=='judge_level') {
             $this->judge_level();
         } else {
-            $this->crawl($con);
+            $this->crawl($con, $action == 'update_problem');
         }
     }
 
@@ -56,7 +56,7 @@ class Crawler extends CrawlerBase
         }, $raw);
     }
 
-    public function crawl($con)
+    public function crawl($con, $incremental)
     {
         $problemModel=new ProblemModel();
         if ($con == 'all') {
@@ -92,7 +92,7 @@ class Crawler extends CrawlerBase
                     preg_match_all('/<a href="\/contest\/[0-9A-Za-z$\-_.+!*\'\(\),%]*\/([0-9A-Fa-f]{4}%20[0-9A-Za-z$\-_.+!*\'\(\),%]*)"/', $res->body, $matches);
                     $rpnames=$matches[1];
                     foreach ($rpnames as $rpname) {
-                        $this->_crawl($rpname);
+                        $this->_crawl($rpname, $incremental);
                     }
                     fwrite($f, "Finished loading problem list of {$cid} at {$now}".PHP_EOL);
                 } catch (Exception $e) {
@@ -100,13 +100,17 @@ class Crawler extends CrawlerBase
                 }
             }
             fclose($f);
-        } else $this->_crawl($con);
+        } else $this->_crawl($con, $incremental);
     }
 
-    private function _crawl($rpname)
+    private function _crawl($rpname, $incremental)
     {
         $pname=urldecode($rpname);
         $pid=substr($rpname, 0, 4);
+        $problemModel = new ProblemModel();
+        if ($incremental && !empty($problemModel->basic($problemModel->pid('CH' . $pid)))) {
+            return;
+        }
         $now=time()-$start;
         fwrite($f, "Start loading problem {$pid} at {$now}".PHP_EOL);
         try {
