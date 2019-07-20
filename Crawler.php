@@ -60,25 +60,19 @@ class Crawler extends CrawlerBase
     {
         $problemModel=new ProblemModel();
         if ($con == 'all') {
-            $start=time();
-            $f=fopen(__DIR__."/contesthunter_status.log", "w") or die("Unable to open file!");
             try {
                 $res=Requests::get("http://contest-hunter.org:83/contest?type=1");
             } catch (Exception $e) {
                 try { // It seems that first query often fails
                     $res=Requests::get("http://contest-hunter.org:83/contest?type=1");
                 } catch (Exception $e2) {
-                    fwrite($f, "Loaded contest list failed.".PHP_EOL);
-                    fclose($f);
-                    die("Loaded contest list failed.");
+                    $this->line("\n  <bg=red;fg=white> Exception </> : <fg=yellow>Failed fetching contests.</>\n");
+                    return;
                 }
             }
             preg_match_all('/<a href="\/contest\/([0-9A-Za-z$\-_.+!*\'\(\),%]*)"/', $res->body, $matches);
-            $now=time()-$start;
-            fwrite($f, "Loaded contest list at {$now}".PHP_EOL);
             $rcnames=array_reverse($matches[1]);
             foreach ($rcnames as $rcname) {
-                $now=time()-$start;
                 $cname=urldecode($rcname);
                 $cid=substr($rcname, 0, 4);
                 $tag=NULL;
@@ -86,20 +80,16 @@ class Crawler extends CrawlerBase
                     $tag=$match[1];
                 }
                 try {
-                    $now=time()-$start;
-                    fwrite($f, "Start loading problem list of {$cid} at {$now}".PHP_EOL);
                     $res=Requests::get("http://contest-hunter.org:83/contest/{$rcname}");
                     preg_match_all('/<a href="\/contest\/[0-9A-Za-z$\-_.+!*\'\(\),%]*\/([0-9A-Fa-f]{4}%20[0-9A-Za-z$\-_.+!*\'\(\),%]*)"/', $res->body, $matches);
                     $rpnames=$matches[1];
                     foreach ($rpnames as $rpname) {
                         $this->_crawl($rpname, $incremental);
                     }
-                    fwrite($f, "Finished loading problem list of {$cid} at {$now}".PHP_EOL);
                 } catch (Exception $e) {
-                    fwrite($f, "Failed loading problem list of {$cid}".PHP_EOL);
+                    $this->line("\n  <bg=red;fg=white> Exception </> : <fg=yellow>Failed fetching problems of contest {$rcname}.</>\n");
                 }
             }
-            fclose($f);
         } else $this->_crawl($con, $incremental);
     }
 
@@ -111,8 +101,9 @@ class Crawler extends CrawlerBase
         if ($incremental && !empty($problemModel->basic($problemModel->pid('CH' . $pid)))) {
             return;
         }
-        $now=time()-$start;
-        fwrite($f, "Start loading problem {$pid} at {$now}".PHP_EOL);
+        $updmsg = $incremental ? 'Updating' : 'Crawling';
+        $donemsg = $incremental ? 'Updated' : 'Crawled';
+        $this->line("<fg=yellow>{$updmsg}:   </>CH$pid");
         try {
             $res=Requests::get("http://contest-hunter.org:83/contest/{$rcname}/{$rpname}");
 
@@ -250,10 +241,9 @@ class Crawler extends CrawlerBase
 
             $problemModel->addTags($new_pid, $tag);
 
-            $now=time()-$start;
-            fwrite($f, "Finished loading problem {$pid} at {$now}".PHP_EOL);
+            $this->line("<fg=green>$donemsg:    </>CH$pid");
         } catch (Exception $e) {
-            fwrite($f, "Failed loading problem {$pid}".PHP_EOL);
+            $this->line("\n  <bg=red;fg=white> Exception </> : <fg=yellow>Failed {$updmsg} CH{$pid}.</>\n");
         }
     }
 }
