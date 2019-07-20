@@ -6,7 +6,7 @@
     "description": "ContestHunter interface for NOJ",
     "license": "MIT",
     "repository":"https://github.com/NJUPTAAA/NOJ_Extension_ContestHunter",
-    "version":"0.0.1",
+    "version":"0.1.0",
     "website":"http://contest-hunter.org:83/",
     "provider":{
         "judger":"Judger",
