@@ -78,6 +78,7 @@ class Submitter extends Curl
             'returnHeader' => true,
             'handle' => $this->selectedJudger["handle"],
         ]);
+        $this->sub['jid'] = $this->selectedJudger['jid'];
         if (preg_match('/\nLocation: \/record\/(\d+)/i', $response, $match)) {
             $this->sub['remote_id'] = $match[1];
         } else {
